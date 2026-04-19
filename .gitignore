@@ -5,8 +5,8 @@ __pycache__/
 .env
 .env.local
 
-data/
-logs/
+/data/
+/logs/
 *.sqlite
 *.db
 *.db-wal

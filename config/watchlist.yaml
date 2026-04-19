@@ -1,0 +1,109 @@
+# Watchlist — danh sách mã Claude được phép research
+# 25 mã cover ~12 sector. Mix large-cap VN30 + mid-cap chất lượng.
+# Update khi cần: thêm/xóa mã không cần restart bot (load_watchlist có cache
+# nhưng daemon daily job fork mới đọc lại).
+
+tickers:
+  # Ngân hàng (5)
+  - ticker: VCB
+    exchange: HSX
+    sector: Banking
+  - ticker: TCB
+    exchange: HSX
+    sector: Banking
+  - ticker: ACB
+    exchange: HSX
+    sector: Banking
+  - ticker: MBB
+    exchange: HSX
+    sector: Banking
+  - ticker: BID
+    exchange: HSX
+    sector: Banking
+
+  # Chứng khoán (2) — sector mới
+  - ticker: SSI
+    exchange: HSX
+    sector: Securities
+  - ticker: VND
+    exchange: HSX
+    sector: Securities
+
+  # Tiêu dùng / bán lẻ (4)
+  - ticker: VNM
+    exchange: HSX
+    sector: Consumer
+  - ticker: MWG
+    exchange: HSX
+    sector: Retail
+  - ticker: MSN
+    exchange: HSX
+    sector: Consumer
+  - ticker: PNJ
+    exchange: HSX
+    sector: Retail
+
+  # Công nghệ (2)
+  - ticker: FPT
+    exchange: HSX
+    sector: Tech
+  - ticker: FRT
+    exchange: HSX
+    sector: Retail
+
+  # Vật liệu / thép / hóa chất (2)
+  - ticker: HPG
+    exchange: HSX
+    sector: Materials
+  - ticker: DGC
+    exchange: HSX
+    sector: Chemicals
+
+  # Bất động sản (3)
+  - ticker: VIC
+    exchange: HSX
+    sector: RealEstate
+  - ticker: VHM
+    exchange: HSX
+    sector: RealEstate
+  - ticker: NLG
+    exchange: HSX
+    sector: RealEstate
+
+  # Bất động sản KCN (1) — sector mới
+  - ticker: KBC
+    exchange: HSX
+    sector: IndustrialRE
+
+  # Năng lượng / dầu khí (2)
+  - ticker: GAS
+    exchange: HSX
+    sector: Energy
+  - ticker: PVS
+    exchange: HNX
+    sector: Energy
+
+  # Điện / utilities (1)
+  - ticker: POW
+    exchange: HSX
+    sector: Utilities
+
+  # Hàng không (1)
+  - ticker: VJC
+    exchange: HSX
+    sector: Airlines
+
+  # Cảng / logistics (1) — sector mới
+  - ticker: GMD
+    exchange: HSX
+    sector: Logistics
+
+  # Dược phẩm (1) — sector mới
+  - ticker: DHG
+    exchange: HSX
+    sector: Pharma
+
+indices:
+  - VNINDEX
+  - VN30
+  - HNXINDEX
