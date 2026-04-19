@@ -1,0 +1,54 @@
+[project]
+name = "vnstock-bot"
+version = "0.1.0"
+description = "Telegram bot mô phỏng đầu tư CK Việt Nam dùng Claude Agent SDK"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = { text = "MIT" }
+authors = [{ name = "joi" }]
+
+dependencies = [
+    "python-telegram-bot[http2]>=21.6",
+    "claude-agent-sdk>=0.0.14",
+    "vnstock>=3.2.0",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.4",
+    "structlog>=24.1",
+    "apscheduler>=3.10",
+    "pandas>=2.2",
+    "pyarrow>=16.0",
+    "pyyaml>=6.0",
+    "python-dateutil>=2.9",
+    "httpx>=0.27",
+    "tzdata>=2024.1",
+]
+
+[project.scripts]
+vnstock-bot = "vnstock_bot.main:cli"
+vnstock-bot-mcp = "vnstock_bot.mcp.server:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vnstock_bot"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.6",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
