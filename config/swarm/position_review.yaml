@@ -1,0 +1,95 @@
+name: position_review
+title: "Review holdings định kỳ / khi giá gần stop-target"
+description: >
+  3 parallel check (fundamental, technical, invalidation) → 1 decider.
+  Kích hàng tuần cho toàn bộ holdings, hoặc ad-hoc khi giá gần stop/target.
+
+timeout_seconds: 180
+
+variables:
+  - name: ticker
+    required: true
+  - name: entry_price
+    required: false
+    default: 0
+  - name: current_stop
+    required: false
+    default: 0
+  - name: current_target
+    required: false
+    default: 0
+
+nodes:
+  - id: fundamental_check
+    type: agent
+    timeout_seconds: 45
+    max_turns: 5
+    tools: [load_skill, get_fundamentals]
+    system_prompt: |
+      Kiểm tra fundamental của {ticker} có còn ủng hộ thesis original không.
+      Bắt buộc load `analysis/fundamental-screen` + `analysis/valuation-model`.
+      Output 4 câu:
+      1. Quality score hiện tại (1-5)
+      2. Red flags mới xuất hiện
+      3. Valuation vs median ngành
+      4. Verdict: "hold" / "trim" / "exit"
+    prompt_template: "Review fundamental của {ticker}."
+
+  - id: technical_check
+    type: agent
+    timeout_seconds: 45
+    max_turns: 5
+    tools: [load_skill, get_price]
+    system_prompt: |
+      Kiểm tra technical của {ticker} — trend có vỡ không, có bearish
+      reversal nào.
+      Bắt buộc load `analysis/technical-trend` + `strategy/candlestick`.
+      Nếu giá gần target/stop, load thêm `strategy/ichimoku` cho trailing.
+      Output 4 câu:
+      1. Trend hiện tại (uptrend/sideway/downtrend)
+      2. Bearish reversal pattern detect (nếu có)
+      3. Hỗ trợ/kháng cự gần nhất (giá)
+      4. Verdict: "hold" / "trim" / "exit"
+    prompt_template: |
+      Review technical {ticker}.
+      Entry: {entry_price}. Stop: {current_stop}. Target: {current_target}.
+
+  - id: invalidation_check
+    type: agent
+    timeout_seconds: 30
+    max_turns: 4
+    tools: [load_skill, get_price, get_portfolio_status]
+    system_prompt: |
+      Kiểm tra invalidation của decision cũ trên {ticker} đã hit chưa.
+      Lấy decision gần nhất từ portfolio context, so với giá/volume hiện tại.
+      Output:
+      - Invalidation condition (từ decision cũ)
+      - Hit? (yes/no + evidence cụ thể)
+      - Verdict: "hold" (chưa hit) / "exit" (đã hit)
+    prompt_template: "Check invalidation của {ticker}."
+
+  - id: decider
+    type: agent
+    depends_on: [fundamental_check, technical_check, invalidation_check]
+    timeout_seconds: 45
+    max_turns: 5
+    input_from:
+      fa: fundamental_check
+      ta: technical_check
+      inv: invalidation_check
+    tools: [propose_trade, load_skill]
+    system_prompt: |
+      Tổng hợp 3 check. Quy tắc quyết định:
+      - Nếu **invalidation_check = "exit"** → action SELL (full), conviction 4-5.
+      - Nếu **technical_check = "exit"** AND fundamental ≥ "trim" → action SELL.
+      - Nếu **≥ 2/3 check = "trim"** → action TRIM (50% position).
+      - Nếu **3/3 = "hold"** → action HOLD.
+      - Còn lại → TRIM 30% conservatively, flag cho next review.
+
+      Gọi `propose_trade` đúng 1 lần với action + invalidation mới + stops.
+    prompt_template: |
+      Fundamental: {fa}
+      Technical: {ta}
+      Invalidation: {inv}
+
+      Quyết định review cho {ticker}.

@@ -1,0 +1,69 @@
+name: shadow_review
+title: "Shadow Account — user upload broker CSV → rule extract → backtest → report"
+description: >
+  Phase 1 (W3 skeleton): parser + rule_extractor stub. Phase 2 (W5) sẽ wire
+  đầy đủ shadow/ module cho extract + backtest + HTML report.
+
+  Flow: parse_csv (function) → extract_rules (agent, giả) →
+  run_shadow_backtest (function stub) → render_report (function stub).
+
+timeout_seconds: 300
+
+variables:
+  - name: journal_path
+    required: true
+  - name: broker
+    required: false
+    default: "auto"
+
+nodes:
+  - id: parse_csv
+    type: function
+    timeout_seconds: 30
+    function: parse_broker_csv_stub
+    function_kwargs:
+      broker_hint: "{broker}"
+
+  - id: extract_rules
+    type: agent
+    depends_on: [parse_csv]
+    timeout_seconds: 90
+    max_turns: 8
+    input_from:
+      trades: parse_csv
+    tools: [load_skill]
+    system_prompt: |
+      Bạn là Rule Extractor. Từ list trade history của user, rút ra 3-5 rule
+      ngầm user đang theo — mỗi rule ≤ 30 chars text.
+
+      Quy trình:
+      1. FIFO pairing trades (buy → sell cùng ticker) → roundtrip list.
+      2. Filter profitable roundtrips.
+      3. Group by (sector, entry_hour_bucket, holding_days_bucket).
+      4. Cluster nào có support ≥ 3 → output rule.
+
+      Output list[Rule]:
+      - human_text: "Mua ngân hàng phiên sáng, giữ 3-5 ngày"
+      - support_count: int
+      - coverage_rate: float (vs total profitable)
+      - sector: string
+      - holding_range: [min_days, max_days]
+    prompt_template: |
+      User trade history (parsed):
+      {trades}
+
+      Extract 3-5 rule. Output JSON list.
+
+  - id: run_shadow_backtest
+    type: function
+    depends_on: [extract_rules]
+    timeout_seconds: 60
+    function: run_shadow_backtest_stub
+    function_kwargs: {}
+
+  - id: render_report
+    type: function
+    depends_on: [run_shadow_backtest]
+    timeout_seconds: 30
+    function: render_shadow_report_stub
+    function_kwargs: {}

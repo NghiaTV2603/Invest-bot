@@ -1,0 +1,87 @@
+name: macro_sector_desk
+title: "Weekly macro + sector rotation → gán regime label"
+description: >
+  Kích chủ nhật. 3 parallel analyst (macro, sector, foreign_flow) →
+  regime_labeler output "risk_on_strong|risk_on_moderate|risk_off_moderate|
+  risk_off_strong|crash" + max_gross_pct + allowed_actions cho tuần tới.
+
+timeout_seconds: 240
+
+variables:
+  - name: week_of
+    required: false
+    default: ""
+
+nodes:
+  - id: macro_analyst
+    type: agent
+    timeout_seconds: 60
+    max_turns: 6
+    tools: [load_skill, get_price, market_snapshot]
+    system_prompt: |
+      Bạn là macro analyst. Load `analysis/top-down-macro` +
+      `risk/regime-filter`. Phân tích:
+      1. VN-Index vs SMA50 / SMA200 (close + slope)
+      2. Lãi suất điều hành + OMO trend (nếu có context)
+      3. Tỷ giá USD/VND hướng
+      4. % thay đổi 20d + YTD của VN-Index
+      5. Breadth (% mã VN30 > SMA50)
+      Output: macro_summary + regime preliminary.
+    prompt_template: "Macro analysis for week {week_of}."
+
+  - id: sector_rotator
+    type: agent
+    timeout_seconds: 60
+    max_turns: 6
+    tools: [load_skill, get_price]
+    system_prompt: |
+      Bạn là sector rotation analyst. Load `analysis/sector-rotation`.
+      Output:
+      1. Top 5 sector theo RS 20d (tên + %)
+      2. Bottom 5 sector (tên + %)
+      3. Rotation patterns (sector nào đang leave top/bottom)
+      4. Sector bị avoid tuần tới
+    prompt_template: "Sector rotation for week {week_of}."
+
+  - id: flow_analyst
+    type: agent
+    timeout_seconds: 45
+    max_turns: 5
+    tools: [load_skill, market_snapshot]
+    system_prompt: |
+      Bạn là flow analyst. Load `flow/foreign-flow`. Output:
+      1. Foreign net flow VN-Index 10 phiên + 20 phiên (tỷ VND)
+      2. % days net buy trong 20d gần nhất
+      3. Persistence signal: streak mua/bán dài nhất trong tháng
+      4. Regime tailwind/headwind verdict
+    prompt_template: "Foreign flow review for week {week_of}."
+
+  - id: regime_labeler
+    type: agent
+    depends_on: [macro_analyst, sector_rotator, flow_analyst]
+    timeout_seconds: 45
+    max_turns: 5
+    input_from:
+      macro: macro_analyst
+      sectors: sector_rotator
+      flow: flow_analyst
+    tools: [load_skill]
+    system_prompt: |
+      Tổng hợp macro + sector + flow → gán regime label cho tuần tới.
+      Load `risk/regime-filter` để dùng đúng ngưỡng.
+
+      Output JSON-like:
+      - regime: "risk_on_strong | risk_on_moderate | risk_off_moderate |
+                risk_off_strong | crash_mode"
+      - max_gross_pct: int (0-100)
+      - allowed_actions: list ["BUY", "ADD", "TRIM", "SELL", "HOLD"]
+      - watchlist_focus: top 3 sector nên tập trung
+      - avoid_sectors: list sector né
+      - key_catalysts: event kinh tế/sector/mã đáng chú ý tuần tới (3-5 bullet)
+      - rationale: 2-3 câu giải thích verdict
+    prompt_template: |
+      Macro: {macro}
+      Sectors: {sectors}
+      Flow: {flow}
+
+      Gán regime label + gross cap + focus/avoid cho tuần {week_of}.

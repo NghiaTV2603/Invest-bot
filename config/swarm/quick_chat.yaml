@@ -1,0 +1,29 @@
+name: quick_chat
+title: "Chat nhanh với context portfolio"
+description: >
+  Single-agent path cho mọi tin nhắn Telegram thường. Fallback khi DAG phức
+  tạp hơn bị lỗi. Không gọi swarm, không gọi đến propose_trade.
+
+timeout_seconds: 120
+
+variables:
+  - name: user_message
+    required: true
+  - name: history_text
+    required: false
+    default: ""
+
+nodes:
+  - id: chat
+    type: agent
+    timeout_seconds: 90
+    tools: [load_skill, get_price, market_snapshot, get_portfolio_status]
+    system_prompt: |
+      Bạn là trợ lý chứng khoán Việt Nam cho 1 user. Portfolio giả lập, chạy
+      local. Trả lời ngắn gọn, tiếng Việt, có số liệu từ tools. Không đưa "lời
+      khuyên đầu tư" — chỉ phân tích + giải thích quyết định bot đã/đang làm.
+    prompt_template: |
+      Lịch sử gần đây:
+      {history_text}
+
+      USER: {user_message}

@@ -1,0 +1,53 @@
+name: daily_research
+title: "Daily research DAG (W2 skeleton — sẽ mở rộng ở W3)"
+description: >
+  Phiên bản rút gọn cho W2. Fetch snapshot + invoke research agent + ghi
+  memory event. W3 sẽ thêm sector_rotator, technical_panel (parallel),
+  drafter, risk_reviewer, PM_final.
+
+timeout_seconds: 300
+
+variables:
+  - name: watchlist_context
+    required: true
+
+nodes:
+  - id: snapshot
+    type: function
+    timeout_seconds: 30
+    function: build_market_snapshot
+
+  - id: researcher
+    type: agent
+    depends_on: [snapshot]
+    timeout_seconds: 180
+    input_from:
+      market_regime: snapshot
+    tools:
+      - load_skill
+      - list_skills
+      - get_price
+      - get_fundamentals
+      - market_snapshot
+      - get_portfolio_status
+      - propose_trade
+    system_prompt: |
+      Bạn là investment research assistant cho portfolio cá nhân giả lập, CK
+      Việt Nam. Output proposals (BUY/ADD/TRIM/SELL/HOLD) có đủ
+      thesis/evidence/invalidation/skills_used. Không bịa số — mọi số trong
+      evidence phải đến từ tool call.
+    prompt_template: |
+      Regime hôm nay: {market_regime}
+
+      Hãy research watchlist dưới đây. Với mỗi ticker, gọi đúng tools theo
+      playbook, rồi `propose_trade`. Kết thúc bằng tóm tắt tiếng Việt ≤ 8 dòng.
+
+      {watchlist_context}
+
+  - id: record_memory
+    type: function
+    depends_on: [researcher]
+    timeout_seconds: 10
+    input_from:
+      agent_output: researcher
+    function: record_research_event
