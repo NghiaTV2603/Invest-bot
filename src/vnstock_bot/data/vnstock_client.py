@@ -143,32 +143,68 @@ def fetch_index(ticker: str, start: date, end: date) -> list[OHLCBar]:
     return bars
 
 
+def _extract_ratios(latest: dict[str, Any]) -> dict[str, Any]:
+    """Flatten broker-specific column names into our canonical dict."""
+    return {
+        "roe": latest.get("roe") or latest.get("ROE"),
+        "pe": latest.get("priceToEarning") or latest.get("pe") or latest.get("PE"),
+        "pb": latest.get("priceToBook") or latest.get("pb") or latest.get("PB"),
+        "debt_to_equity": latest.get("debtOnEquity") or latest.get("de"),
+        "eps": latest.get("earningPerShare") or latest.get("eps"),
+        "revenue_growth": latest.get("revenueGrowth"),
+        "profit_growth": latest.get("postTaxOnEquity") or latest.get("profitGrowth"),
+        "raw": {
+            k: (float(v) if isinstance(v, (int, float)) else str(v))
+            for k, v in latest.items()
+            if v is not None
+        },
+    }
+
+
 def fetch_fundamentals(ticker: str) -> dict[str, Any]:
-    """Return a minimal dict of fundamental ratios. Best-effort, may be empty."""
+    """Return a minimal dict of fundamental ratios. Best-effort — tries
+    TCBS first, falls back to VCI, returns empty dict if both fail.
+
+    BUG-2: recent vnstock versions have removed/renamed `explorer.tcbs`,
+    so MWG/MSN fundamentals silently failed with 'No module named
+    vnstock.explorer.tcbs'. We now swallow ImportError at the provider
+    level and fall through to the next provider.
+    """
     _throttle()
+    errors: list[str] = []
+
+    # Try TCBS first (historical default; richer ratio coverage when available)
     try:
-        from vnstock.explorer.tcbs import Finance  # type: ignore
-        fin = Finance(symbol=ticker)
+        from vnstock.explorer.tcbs import Finance as TCBSFinance  # type: ignore
+        fin = TCBSFinance(symbol=ticker)
         ratios = getattr(fin, "ratio", None)
-        if ratios is None:
-            return {}
-        df = ratios(period="year", lang="en")
-        if df is None or len(df) == 0:
-            return {}
-        latest = df.iloc[0].to_dict()
-        return {
-            "roe": latest.get("roe") or latest.get("ROE"),
-            "pe": latest.get("priceToEarning") or latest.get("pe") or latest.get("PE"),
-            "pb": latest.get("priceToBook") or latest.get("pb") or latest.get("PB"),
-            "debt_to_equity": latest.get("debtOnEquity") or latest.get("de"),
-            "eps": latest.get("earningPerShare") or latest.get("eps"),
-            "revenue_growth": latest.get("revenueGrowth"),
-            "profit_growth": latest.get("postTaxOnEquity") or latest.get("profitGrowth"),
-            "raw": {k: (float(v) if isinstance(v, (int, float)) else str(v)) for k, v in latest.items() if v is not None},
-        }
+        if ratios is not None:
+            df = ratios(period="year", lang="en")
+            if df is not None and len(df) > 0:
+                return _extract_ratios(df.iloc[0].to_dict())
+    except ImportError as e:
+        errors.append(f"tcbs: {e}")
     except Exception as e:  # noqa: BLE001
-        log.warning("fundamentals_fetch_failed", ticker=ticker, error=str(e))
-        return {}
+        errors.append(f"tcbs_runtime: {e}")
+
+    # Fallback to VCI
+    try:
+        from vnstock.explorer.vci import Finance as VCIFinance  # type: ignore
+        fin = VCIFinance(symbol=ticker)
+        ratios = getattr(fin, "ratio", None)
+        if ratios is not None:
+            df = ratios(period="year", lang="en")
+            if df is not None and len(df) > 0:
+                return _extract_ratios(df.iloc[0].to_dict())
+    except ImportError as e:
+        errors.append(f"vci: {e}")
+    except Exception as e:  # noqa: BLE001
+        errors.append(f"vci_runtime: {e}")
+
+    if errors:
+        log.warning("fundamentals_fetch_failed", ticker=ticker,
+                    errors=errors)
+    return {}
 
 
 def fetch_foreign_flow(days: int = 20) -> list[dict[str, Any]]:
