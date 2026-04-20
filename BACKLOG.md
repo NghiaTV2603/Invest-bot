@@ -47,12 +47,23 @@ chí "done when" cụ thể.
   format`. Thêm `pre-commit install` vào README setup.
 - **Done when:** Commit có code lỗi → bị hook block trước khi push.
 
-### 📋 POLISH-1 Fix flaky date-based tests khác
-- `test_queries.py::test_decision_insert_and_recent` đã fix.
-- Check toàn bộ `tests/` còn test nào hardcode `2026-04-XX` không —
-  đổi sang `now_vn()` hoặc `freezegun`.
-- **Done when:** `grep -r "2026-04-" tests/` chỉ còn trong comments hoặc
-  fixture metadata.
+### ✅ POLISH-1 Fix flaky date-based tests khác (done)
+Fixed hardcoded 2026-04-XX fixtures in test_bias_weekly_check + test_memory_recall
+(combined with date('now', '-N days') queries). Commit `5f2aeb0`. Self-contained
+fixture dates (detectors, simulator, shadow) intentionally left alone since
+they don't query against now().
+
+### 📋 QUAL-3 Apply `ruff format` to the whole codebase
+- **Why:** CI currently skips `ruff format --check` because 82 files need
+  reformatting (see `.github/workflows/test.yml` TODO comment). Enable
+  the check after 1 big mechanical commit.
+- **Scope:** `uv run ruff format src tests` in a single commit titled
+  `style: apply ruff format across codebase`, then uncomment the
+  format-check step in `.github/workflows/test.yml`.
+- **Risk:** large diff (~80 files); review mainly whitespace but watch
+  for string literal reflows that might break Vietnamese text spacing.
+- **Done when:** `uv run ruff format --check src tests` returns clean
+  AND CI has the step re-enabled.
 
 ---
 

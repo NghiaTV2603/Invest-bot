@@ -1,0 +1,49 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same branch (save CI minutes).
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          # Use cache at ~/.cache/uv — speeds up reruns.
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Ruff — lint
+        run: uv run ruff check src tests
+
+      # TODO: enable `ruff format --check` once the existing codebase is
+      # formatted in a separate commit (currently 82 files would need
+      # reformat, blocking CI). Tracked as QUAL-3 in BACKLOG.md.
+
+      - name: Pytest
+        run: uv run pytest -q
+        env:
+          # Minimal fake env so pydantic-settings doesn't bail on import.
+          # Real tests use conftest `_isolated_env` to override.
+          TELEGRAM_BOT_TOKEN: "ci-fake-token"
+          TELEGRAM_CHAT_ID_WHITELIST: "0"
