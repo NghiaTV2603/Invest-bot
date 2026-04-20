@@ -28,30 +28,53 @@ async def _run_bot() -> None:
     async def send_default(text: str):
         await send_to_default_chat(app, text)
 
-    scheduler = AsyncIOScheduler(timezone=settings.tz)
+    # APScheduler default misfire_grace_time=1s is too strict — if the
+    # event loop is briefly blocked (Telegram long-poll + Claude SDK turn)
+    # the job is silently marked as missed and never runs. Raise grace to
+    # 10 minutes so we never miss a daily research window. coalesce=True
+    # ensures at most 1 fire even if several scheduled slots passed during
+    # a long outage.
+    scheduler = AsyncIOScheduler(
+        timezone=settings.tz,
+        job_defaults={"misfire_grace_time": 600, "coalesce": True},
+    )
     scheduler.add_job(
         lambda: asyncio.create_task(daily_research_job(send_default)),
         CronTrigger(
             hour=settings.daily_cron_hour,
             minute=settings.daily_cron_minute,
             day_of_week="mon-fri",
+            timezone=settings.tz,
         ),
         id="daily_research",
         replace_existing=True,
+        name="daily_research",
     )
     scheduler.add_job(
         lambda: asyncio.create_task(weekly_review_job(send_default)),
         CronTrigger(
             day_of_week=settings.weekly_cron_day,
             hour=settings.weekly_cron_hour,
+            timezone=settings.tz,
         ),
         id="weekly_review",
         replace_existing=True,
+        name="weekly_review",
     )
     scheduler.start()
-    log.info("scheduler_started",
-             daily=f"{settings.daily_cron_hour}:{settings.daily_cron_minute:02d}",
-             weekly=f"{settings.weekly_cron_day} {settings.weekly_cron_hour}:00")
+
+    # Log the NEXT firing time for each job so we can verify the schedule
+    # immediately after boot (observed bug: cron silently missed when
+    # next_run_time was never computed correctly).
+    daily_next = scheduler.get_job("daily_research").next_run_time
+    weekly_next = scheduler.get_job("weekly_review").next_run_time
+    log.info(
+        "scheduler_started",
+        daily=f"{settings.daily_cron_hour}:{settings.daily_cron_minute:02d}",
+        weekly=f"{settings.weekly_cron_day} {settings.weekly_cron_hour}:00",
+        daily_next_run=str(daily_next),
+        weekly_next_run=str(weekly_next),
+    )
 
     async with app:
         await app.initialize()
