@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import date
 
 from telegram import Update
 from telegram.constants import ParseMode
@@ -23,7 +23,7 @@ from vnstock_bot.learning.skill_scorer import summarize
 from vnstock_bot.logging_setup import get_logger
 from vnstock_bot.portfolio import reporter
 from vnstock_bot.scheduler.jobs import daily_research_job
-from vnstock_bot.telegram.format import truncate
+from vnstock_bot.telegram.format import md_to_telegram_html, truncate
 from vnstock_bot.telegram.v2_handlers import register_v2_handlers
 
 log = get_logger(__name__)
@@ -34,11 +34,24 @@ def _allowed(chat_id: int) -> bool:
 
 
 async def _send(bot, chat_id: int, text: str) -> None:
-    await bot.send_message(
-        chat_id=chat_id,
-        text=truncate(text),
-        disable_web_page_preview=True,
-    )
+    """Send with HTML rendering of Claude's markdown. Fall back to plain
+    text if Telegram rejects the HTML (e.g. Claude emitted an unmatched
+    tag character we failed to escape)."""
+    html_body = truncate(md_to_telegram_html(text))
+    try:
+        await bot.send_message(
+            chat_id=chat_id,
+            text=html_body,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+        )
+    except Exception as e:  # noqa: BLE001
+        log.warning("send_html_failed_falling_back_plain", error=str(e))
+        await bot.send_message(
+            chat_id=chat_id,
+            text=truncate(text),
+            disable_web_page_preview=True,
+        )
 
 
 # ---------------------------------------------------------------- command handlers
@@ -121,7 +134,7 @@ async def cmd_report(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     vni_last = eq[-1]["vnindex"] or 0
     vni_pct = (vni_last - vni_first) / vni_first * 100 if vni_first else 0
     lines = [
-        f"*Weekly report*",
+        "*Weekly report*",
         f"NAV: {first:,} → {last:,}  ({pct:+.2f}%)",
         f"VN-Index: {vni_first:.2f} → {vni_last:.2f}  ({vni_pct:+.2f}%)",
         f"Alpha: {pct - vni_pct:+.2f}%",
@@ -154,8 +167,9 @@ async def cmd_backtest(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         except ValueError:
             pass
     await update.message.reply_text(f"⏳ Backtest {months} tháng, chạy nền...")
-    from vnstock_bot.backtest.runner import run_backtest
     from pathlib import Path
+
+    from vnstock_bot.backtest.runner import run_backtest
     out_dir = Path(get_settings().absolute_raw_dir).parent / "backtest" / date.today().isoformat()
     r = run_backtest(months, out_dir)
     await update.message.reply_text(
