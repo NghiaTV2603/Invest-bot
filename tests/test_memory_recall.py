@@ -49,8 +49,17 @@ def test_search_memory_combines_and_ranks():
 
 
 def test_recall_similar_decision_filters_by_ticker():
+    from datetime import timedelta
+
+    from vnstock_bot.data.holidays import now_vn
+
+    # recall_similar_decision uses since_days=365 — fixtures must fall
+    # within that window, so base off today.
+    fpt_ts = (now_vn() - timedelta(days=10)).isoformat()
+    vnm_ts = (now_vn() - timedelta(days=5)).isoformat()
+
     queries.insert_decision({
-        "created_at": "2026-04-10T15:31:00",
+        "created_at": fpt_ts,
         "ticker": "FPT",
         "action": "BUY",
         "qty": 100,
@@ -67,7 +76,7 @@ def test_recall_similar_decision_filters_by_ticker():
         "status": "pending",
     })
     queries.insert_decision({
-        "created_at": "2026-04-15T15:31:00",
+        "created_at": vnm_ts,
         "ticker": "VNM",
         "action": "BUY",
         "qty": 100,

@@ -28,42 +28,54 @@ def test_persist_report_upserts_existing_week():
 def test_load_bot_trades_pairs_buy_sell_fifo():
     """Insert 2 buys + 1 sell on same ticker, verify FIFO pairing produces
     correct pnl + hold_days."""
+    from datetime import timedelta
+
+    from vnstock_bot.data.holidays import now_vn
+
+    # Use dates relative to today so the 365d lookback window in
+    # load_bot_trades doesn't exclude our fixtures after a year.
+    today = now_vn().date()
+    decision_ts = (now_vn() - timedelta(days=19)).isoformat()
+    buy1_date = (today - timedelta(days=19)).isoformat()
+    buy1_fill = (now_vn() - timedelta(days=18)).isoformat(timespec="seconds")
+    buy2_date = (today - timedelta(days=17)).isoformat()
+    buy2_fill = (now_vn() - timedelta(days=16)).isoformat(timespec="seconds")
+    sell_date = (today - timedelta(days=10)).isoformat()
+    sell_fill = (now_vn() - timedelta(days=9)).isoformat(timespec="seconds")
+
     conn = get_connection()
     with conn:
-        # decision row for FK
         cur = conn.execute(
             """INSERT INTO decisions
                 (created_at, ticker, action, qty, thesis,
                  evidence_json, risks_json, invalidation,
                  skills_used_json, conviction, source, status)
-               VALUES ('2026-04-01T10:00:00', 'FPT', 'BUY', 200, 't',
+               VALUES (?, 'FPT', 'BUY', 200, 't',
                        '[]', '[]', 'x', '["technical-trend"]', 4,
                        'claude_daily', 'filled')""",
+            (decision_ts,),
         )
         did = cur.lastrowid
         conn.execute(
             """INSERT INTO orders
                 (decision_id, ticker, side, qty, placed_at, expected_fill_date,
                  filled_at, fill_price, fee, status)
-               VALUES (?, 'FPT', 'BUY', 100, '2026-04-01', '2026-04-02',
-                       '2026-04-02T09:00:00', 100000, 150, 'filled')""",
-            (did,),
+               VALUES (?, 'FPT', 'BUY', 100, ?, ?, ?, 100000, 150, 'filled')""",
+            (did, buy1_date, buy1_date, buy1_fill),
         )
         conn.execute(
             """INSERT INTO orders
                 (decision_id, ticker, side, qty, placed_at, expected_fill_date,
                  filled_at, fill_price, fee, status)
-               VALUES (?, 'FPT', 'BUY', 100, '2026-04-03', '2026-04-04',
-                       '2026-04-04T09:00:00', 105000, 150, 'filled')""",
-            (did,),
+               VALUES (?, 'FPT', 'BUY', 100, ?, ?, ?, 105000, 150, 'filled')""",
+            (did, buy2_date, buy2_date, buy2_fill),
         )
         conn.execute(
             """INSERT INTO orders
                 (decision_id, ticker, side, qty, placed_at, expected_fill_date,
                  filled_at, fill_price, fee, status)
-               VALUES (?, 'FPT', 'SELL', 150, '2026-04-10', '2026-04-11',
-                       '2026-04-11T09:00:00', 115000, 200, 'filled')""",
-            (did,),
+               VALUES (?, 'FPT', 'SELL', 150, ?, ?, ?, 115000, 200, 'filled')""",
+            (did, sell_date, sell_date, sell_fill),
         )
 
     trades = weekly_check.load_bot_trades(days=365)
@@ -80,6 +92,11 @@ def test_load_bot_trades_pairs_buy_sell_fifo():
 
 
 def test_load_bot_decisions_parses_skills_json():
+    from datetime import timedelta
+
+    from vnstock_bot.data.holidays import now_vn
+
+    created = (now_vn() - timedelta(days=10)).isoformat()
     conn = get_connection()
     with conn:
         conn.execute(
@@ -87,9 +104,10 @@ def test_load_bot_decisions_parses_skills_json():
                 (created_at, ticker, action, qty, thesis,
                  evidence_json, risks_json, invalidation,
                  skills_used_json, conviction, source, status)
-               VALUES ('2026-04-10T10:00:00', 'VNM', 'BUY', 100, 'momentum play',
+               VALUES (?, 'VNM', 'BUY', 100, 'momentum play',
                        '[]', '[]', 'x', '["momentum","candlestick"]', 3,
-                       'claude_daily', 'pending')"""
+                       'claude_daily', 'pending')""",
+            (created,),
         )
 
     decisions = weekly_check.load_bot_decisions(days=365)
