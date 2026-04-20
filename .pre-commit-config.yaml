@@ -1,0 +1,37 @@
+# Pre-commit hooks — run automatically on `git commit` after
+# `pre-commit install`. Mirror CI so local commits can't produce
+# red builds.
+#
+# Install:
+#   uv run pre-commit install
+# Run manually across repo (one-time bootstrap):
+#   uv run pre-commit run --all-files
+
+repos:
+  # Ruff: lint (matches CI `ruff check src tests`)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi]
+      # `ruff format` deliberately NOT enabled yet — see BACKLOG QUAL-3.
+      # Turn this back on once the codebase has been fully formatted.
+      # - id: ruff-format
+      #   types_or: [python, pyi]
+
+  # Standard hygiene hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.md$   # preserve hard line-break markdown
+      - id: end-of-file-fixer
+        exclude: \.md$
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]

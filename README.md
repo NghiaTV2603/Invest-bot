@@ -283,9 +283,15 @@ Cron 15:30 thứ 2-6 + chủ nhật 10:00 tự chạy — bạn để đó đi l
 
 ```bash
 uv run pytest                       # 218 tests
-uv run ruff check src tests
-uv run ruff format src tests
+uv run ruff check src tests         # lint — enforced in CI
+uv run ruff format src tests        # format (optional)
+
+# Recommended: install pre-commit hooks so ruff lint runs on every commit
+uv run pre-commit install
 ```
+
+CI (GitHub Actions) runs ruff lint + pytest on every push to main + PR —
+see `.github/workflows/test.yml`.
 
 Core invariants (sẽ break nếu bạn đụng vào):
 - **Money là `int` VND.** Không `float` trong DB / simulator / validator.
