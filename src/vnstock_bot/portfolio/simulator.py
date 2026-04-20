@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Any
 
 from vnstock_bot.config import get_settings
-from vnstock_bot.data.holidays import add_trading_days, iso, next_trading_day, now_vn
+from vnstock_bot.data.holidays import add_trading_days, iso, next_trading_day
 from vnstock_bot.db import queries
 from vnstock_bot.logging_setup import get_logger
 from vnstock_bot.portfolio.types import FillResult, Holding, Portfolio

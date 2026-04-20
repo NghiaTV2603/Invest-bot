@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,7 +21,7 @@ class AgentResult:
 
 # Guarded import so other modules don't crash when SDK absent during tests.
 def _import_sdk():
-    from claude_agent_sdk import ClaudeSDKClient, ClaudeAgentOptions, tool, create_sdk_mcp_server
+    from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient, create_sdk_mcp_server, tool
     return ClaudeSDKClient, ClaudeAgentOptions, tool, create_sdk_mcp_server
 
 
@@ -72,7 +71,9 @@ async def run_agent(
     )
 
     from claude_agent_sdk import (
-        AssistantMessage, ResultMessage, TextBlock,
+        AssistantMessage,
+        ResultMessage,
+        TextBlock,
     )
 
     text_parts: list[str] = []

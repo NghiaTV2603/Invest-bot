@@ -86,7 +86,6 @@ async def daily_research_single_job(send: SendFn | None = None) -> dict:
     Kept as the production default + as the orchestrator fallback when
     the DAG runner fails."""
     today = today_vn()
-    settings = get_settings()
     if not is_trading_day(today):
         msg = f"⏸ {iso(today)} không phải phiên giao dịch, skip daily job."
         log.info("daily_job_skip_holiday")

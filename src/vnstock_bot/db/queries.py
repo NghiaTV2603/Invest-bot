@@ -224,14 +224,17 @@ def latest_market_snapshot() -> sqlite3.Row | None:
 
 # ---------------------------------------------------------------- ohlc cache
 
-def upsert_ohlc(ticker: str, d: str, o: int, h: int, l: int, c: int, v: int) -> None:
+def upsert_ohlc(
+    ticker: str, d: str, o: int, h: int, lo: int, c: int, v: int,
+) -> None:
     with transaction() as conn:
         conn.execute(
-            """INSERT INTO ohlc_cache (ticker, date, open, high, low, close, volume) VALUES (?,?,?,?,?,?,?)
-            ON CONFLICT(ticker, date) DO UPDATE SET
-              open=excluded.open, high=excluded.high, low=excluded.low,
-              close=excluded.close, volume=excluded.volume""",
-            (ticker, d, o, h, l, c, v),
+            """INSERT INTO ohlc_cache (ticker, date, open, high, low, close, volume)
+               VALUES (?,?,?,?,?,?,?)
+               ON CONFLICT(ticker, date) DO UPDATE SET
+                 open=excluded.open, high=excluded.high, low=excluded.low,
+                 close=excluded.close, volume=excluded.volume""",
+            (ticker, d, o, h, lo, c, v),
         )
 
 

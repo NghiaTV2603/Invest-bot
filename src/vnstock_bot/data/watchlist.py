@@ -38,7 +38,7 @@ class Watchlist:
 @lru_cache(maxsize=1)
 def load_watchlist() -> Watchlist:
     path = get_settings().watchlist_path
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         raw = yaml.safe_load(f)
     tickers = tuple(
         WatchlistEntry(ticker=t["ticker"], exchange=t["exchange"], sector=t["sector"])

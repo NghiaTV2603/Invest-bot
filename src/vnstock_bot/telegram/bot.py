@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 from datetime import date
 
@@ -103,10 +104,8 @@ async def cmd_decisions(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         return
     days = 7
     if ctx.args:
-        try:
+        with contextlib.suppress(ValueError):
             days = int(ctx.args[0])
-        except ValueError:
-            pass
     rows = queries.get_decisions_recent(days)
     if not rows:
         await update.message.reply_text(f"Không có decision nào trong {days} ngày.")
@@ -162,10 +161,8 @@ async def cmd_backtest(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         return
     months = 6
     if ctx.args:
-        try:
+        with contextlib.suppress(ValueError):
             months = int(ctx.args[0].rstrip("m").rstrip("mo"))
-        except ValueError:
-            pass
     await update.message.reply_text(f"⏳ Backtest {months} tháng, chạy nền...")
     from pathlib import Path
 

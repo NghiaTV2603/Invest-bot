@@ -17,11 +17,10 @@ import json
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any
 
 from vnstock_bot.config import get_settings
 from vnstock_bot.data import vnstock_client
-from vnstock_bot.data.holidays import iso, is_trading_day
+from vnstock_bot.data.holidays import iso
 from vnstock_bot.data.watchlist import load_watchlist
 from vnstock_bot.logging_setup import get_logger
 

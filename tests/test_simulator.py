@@ -2,7 +2,6 @@ from datetime import date
 
 from vnstock_bot.db import queries
 from vnstock_bot.portfolio.simulator import (
-    LOT_SIZE,
     compute_fee,
     fill_pending_orders,
     load_portfolio,

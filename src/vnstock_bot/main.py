@@ -16,8 +16,8 @@ from vnstock_bot.logging_setup import get_logger, setup_logging
 
 
 async def _run_bot() -> None:
-    from vnstock_bot.telegram.bot import build_application, send_to_default_chat
     from vnstock_bot.scheduler.jobs import daily_research_job, weekly_review_job
+    from vnstock_bot.telegram.bot import build_application, send_to_default_chat
 
     settings = get_settings()
     log = get_logger("main")
@@ -70,7 +70,6 @@ async def _run_bot() -> None:
 
 async def _doctor() -> None:
     settings = get_settings()
-    log = get_logger("doctor")
     print(f"• DB path: {settings.absolute_db_path}")
     print(f"• Raw dir: {settings.absolute_raw_dir}")
     print(f"• Whitelist: {settings.whitelist_ids}")
@@ -107,6 +106,7 @@ async def _doctor() -> None:
 async def _warm_cache(days: int) -> None:
     """Fetch OHLC for every ticker in watchlist + indices; write to ohlc_cache."""
     from datetime import timedelta
+
     from vnstock_bot.data import vnstock_client
     from vnstock_bot.data.watchlist import load_watchlist
     from vnstock_bot.db import queries
@@ -149,6 +149,7 @@ async def _warm_cache(days: int) -> None:
 
 async def _backtest_cmd(months: int) -> None:
     from pathlib import Path
+
     from vnstock_bot.backtest.runner import run_backtest
     settings = get_settings()
     out_dir = Path(settings.absolute_raw_dir).parent / "backtest" / date.today().isoformat()

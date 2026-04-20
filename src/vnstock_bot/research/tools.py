@@ -7,15 +7,13 @@ Tools validate input, hit DB/vnstock, and return structured JSON.
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timedelta
 from typing import Any
 
-from vnstock_bot.data.holidays import iso, now_vn, today_vn
 from vnstock_bot.data.watchlist import load_watchlist
 from vnstock_bot.db import queries
 from vnstock_bot.logging_setup import get_logger
 from vnstock_bot.portfolio.simulator import load_portfolio
-from vnstock_bot.research.skill_loader import list_all_skills, read_skill, write_skill
+from vnstock_bot.research.skill_loader import list_all_skills, read_skill
 
 log = get_logger(__name__)
 

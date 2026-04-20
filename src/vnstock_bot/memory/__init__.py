@@ -13,13 +13,13 @@ from vnstock_bot.memory.events import (
     get_timeline,
     record_event,
 )
-from vnstock_bot.memory.patterns import extract_and_persist as extract_patterns
 from vnstock_bot.memory.files import (
     delete_memory_file,
     list_memory_files,
     read_memory_file,
     write_memory_file,
 )
+from vnstock_bot.memory.patterns import extract_and_persist as extract_patterns
 from vnstock_bot.memory.recall import (
     MemoryHit,
     recall_similar_decision,

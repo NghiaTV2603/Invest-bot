@@ -99,7 +99,7 @@ def validate(raw: dict) -> ValidationOutcome:
         elif last_close:
             new_notional = last_close * (holding.qty_total + d.qty)
             if new_notional > nav_snapshot * 0.20:
-                errors.append(f"ADD makes position > 20% NAV")
+                errors.append("ADD makes position > 20% NAV")
     elif d.action in ("TRIM", "SELL"):
         if holding is None:
             errors.append(f"{d.action} not allowed: no position on {d.ticker}")
@@ -112,10 +112,10 @@ def validate(raw: dict) -> ValidationOutcome:
     # 7. Required skill/playbook per action
     if d.action in ("BUY", "ADD") and d.playbook_used != "new-entry":
         errors.append("BUY/ADD requires playbook_used='new-entry'")
-    if d.action in ("TRIM", "SELL") and d.playbook_used != "cut-loser":
-        # relax: allow TRIM without cut-loser if it's a target-hit trim
-        if d.action == "SELL":
-            errors.append("SELL requires playbook_used='cut-loser'")
+    if (d.action == "SELL" and d.playbook_used != "cut-loser"):
+        # TRIM is allowed without cut-loser (e.g. target-hit partial trim);
+        # only full SELL mandates the cut-loser playbook reference.
+        errors.append("SELL requires playbook_used='cut-loser'")
     if not d.skills_used:
         errors.append("skills_used must be non-empty")
     if len(d.evidence) < 3:
