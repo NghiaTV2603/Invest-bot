@@ -16,8 +16,9 @@ def test_upsert_holding_roundtrip():
 
 
 def test_decision_insert_and_recent():
+    from vnstock_bot.data.holidays import now_vn
     did = queries.insert_decision({
-        "created_at": "2026-04-18T15:31:00",
+        "created_at": now_vn().isoformat(),
         "ticker": "FPT",
         "action": "BUY",
         "qty": 100,
