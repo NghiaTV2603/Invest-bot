@@ -5,6 +5,13 @@ from vnstock_bot.learning import skill_lifecycle as lc
 from vnstock_bot.research.skill_loader import read_skill_meta, write_skill
 
 
+# Redirect SKILLS_DIR to a tmp path so write_skill() fixtures in this
+# module don't pollute the repo skills/ folder.
+@pytest.fixture(autouse=True)
+def _skills_dir(isolated_skills_dir):
+    return isolated_skills_dir
+
+
 def _insert_stats(skill, **cols):
     placeholders = ",".join("?" * (len(cols) + 1))
     names = "skill," + ",".join(cols.keys())

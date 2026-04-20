@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     db_path: Path = Field(Path("data/bot.db"), alias="DB_PATH")
     raw_data_dir: Path = Field(Path("data/raw"), alias="RAW_DATA_DIR")
     memory_dir: Path = Field(Path("data/memory"), alias="MEMORY_DIR")
+    skills_dir_override: Path | None = Field(None, alias="SKILLS_DIR")
     log_dir: Path = Field(Path("logs"), alias="LOG_DIR")
 
     tz: str = Field("Asia/Ho_Chi_Minh", alias="TZ")
@@ -73,6 +74,11 @@ class Settings(BaseSettings):
 
     @property
     def skills_dir(self) -> Path:
+        # Tests override via SKILLS_DIR env so write_skill() calls in
+        # test_skill_lifecycle.py don't pollute the real repo skills/.
+        if self.skills_dir_override is not None:
+            override = self.skills_dir_override
+            return override if override.is_absolute() else PROJECT_ROOT / override
         return PROJECT_ROOT / "skills"
 
     @property

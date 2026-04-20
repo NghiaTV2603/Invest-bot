@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+import pytest
+
 from vnstock_bot.data.holidays import now_vn
 from vnstock_bot.db import queries
 from vnstock_bot.db.connection import get_connection
@@ -8,6 +10,13 @@ from vnstock_bot.learning.skill_stats_compute import (
     compute_and_persist_all,
     compute_skill_stats,
 )
+
+
+# test_stats_unblocks_skill_lifecycle uses write_skill() to create a shadow
+# skill file — redirect SKILLS_DIR to tmp so it doesn't pollute the repo.
+@pytest.fixture(autouse=True)
+def _skills_dir(isolated_skills_dir):
+    return isolated_skills_dir
 
 
 def _seed_decision(created_at: str, skills: list[str], ticker: str = "FPT") -> int:
